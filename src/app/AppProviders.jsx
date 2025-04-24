@@ -1,13 +1,12 @@
 import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
 
-/**
- * Application providers composition
- * In a real app, this would include providers for auth, theme, etc.
- */
 export function AppProviders({ children }) {
   return (
-    <React.Fragment>
+    <BrowserRouter>
       {children}
-    </React.Fragment>
+    </BrowserRouter>
   );
 }
+
+export default AppProviders;

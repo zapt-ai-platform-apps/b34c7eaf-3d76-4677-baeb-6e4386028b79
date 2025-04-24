@@ -1,20 +1,17 @@
-import { initializeLayout } from '@/modules/layout/internal/initialize';
-import { eventBus } from '@/modules/core/events';
-import { events as layoutEvents } from '@/modules/layout/events';
+import * as Sentry from '@sentry/browser';
+import { initializeDatabase } from './core/api';
 
-/**
- * Initialize all application modules
- */
 export async function initializeModules() {
-  console.log('Initializing modules...');
-  
-  // Subscribe to app initialization events
-  eventBus.subscribe(layoutEvents.APP_INITIALIZED, () => {
-    console.log('Application initialized successfully');
-  });
-  
-  // Initialize modules
-  await initializeLayout();
-  
-  console.log('All modules initialized');
+  try {
+    console.log('Initializing application modules...');
+    
+    // Initialize the database
+    await initializeDatabase();
+    
+    console.log('All modules initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize modules:', error);
+    Sentry.captureException(error);
+    throw error;
+  }
 }

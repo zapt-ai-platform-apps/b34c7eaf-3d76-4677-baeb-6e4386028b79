@@ -1,19 +1,42 @@
-import { customers } from '../drizzle/schema.js';
-import { getDatabase, handleApiError } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, parseObjectId, formatDocument, formatDocuments } from './_apiUtils.js';
 import Sentry from './_sentry.js';
-import { eq } from 'drizzle-orm';
 
 export default async function handler(req, res) {
-  const db = getDatabase();
-
   console.log(`Processing ${req.method} request to /api/customers`);
 
   try {
+    const { db } = await connectToDatabase();
+    const collection = db.collection('customers');
+
     // GET customers
     if (req.method === 'GET') {
-      const allCustomers = await db.select().from(customers);
-      console.log(`Retrieved ${allCustomers.length} customers`);
-      return res.status(200).json(allCustomers);
+      const customerId = req.url.includes('/api/customers/') ? 
+        req.url.split('/').pop() : null;
+
+      if (customerId && customerId !== 'customers') {
+        // GET specific customer
+        try {
+          const customer = await collection.findOne({
+            _id: parseObjectId(customerId)
+          });
+
+          if (!customer) {
+            return res.status(404).json({ error: 'Customer not found' });
+          }
+
+          return res.status(200).json(formatDocument(customer));
+        } catch (error) {
+          if (error.message.includes('Invalid ID format')) {
+            return res.status(400).json({ error: 'Invalid customer ID format' });
+          }
+          throw error;
+        }
+      } else {
+        // GET all customers
+        const allCustomers = await collection.find({}).toArray();
+        console.log(`Retrieved ${allCustomers.length} customers`);
+        return res.status(200).json(formatDocuments(allCustomers));
+      }
     }
     
     // POST new customer
@@ -25,78 +48,77 @@ export default async function handler(req, res) {
       }
       
       // Check if customer with this email already exists
-      const existingCustomer = await db.select()
-        .from(customers)
-        .where(eq(customers.email, email))
-        .limit(1);
+      const existingCustomer = await collection.findOne({ email });
       
-      if (existingCustomer.length > 0) {
+      if (existingCustomer) {
         return res.status(409).json({ error: 'Customer with this email already exists' });
       }
       
-      const newCustomer = await db.insert(customers)
-        .values({ name, email, phone })
-        .returning();
+      const result = await collection.insertOne({
+        name,
+        email,
+        phone,
+        createdAt: new Date()
+      });
       
-      console.log('Created new customer:', newCustomer[0]);
-      return res.status(201).json(newCustomer[0]);
+      const newCustomer = await collection.findOne({ _id: result.insertedId });
+      console.log('Created new customer:', newCustomer);
+      
+      return res.status(201).json(formatDocument(newCustomer));
     }
     
-    // Handle customer by ID endpoints
-    if (req.url.includes('/api/customers/')) {
-      const id = parseInt(req.url.split('/').pop());
+    // PUT update customer
+    if (req.method === 'PUT' && req.url.includes('/api/customers/')) {
+      const customerId = req.url.split('/').pop();
+      const { name, email, phone } = req.body;
       
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid customer ID' });
+      if (!name || !email) {
+        return res.status(400).json({ error: 'Name and email are required' });
       }
       
-      // GET specific customer
-      if (req.method === 'GET') {
-        const customer = await db.select()
-          .from(customers)
-          .where(eq(customers.id, id))
-          .limit(1);
+      try {
+        const result = await collection.findOneAndUpdate(
+          { _id: parseObjectId(customerId) },
+          { $set: { name, email, phone, updatedAt: new Date() } },
+          { returnDocument: 'after' }
+        );
           
-        if (customer.length === 0) {
+        if (!result) {
           return res.status(404).json({ error: 'Customer not found' });
         }
         
-        return res.status(200).json(customer[0]);
-      }
-      
-      // PUT update customer
-      if (req.method === 'PUT') {
-        const { name, email, phone } = req.body;
-        
-        if (!name || !email) {
-          return res.status(400).json({ error: 'Name and email are required' });
+        console.log('Updated customer:', result);
+        return res.status(200).json(formatDocument(result));
+      } catch (error) {
+        if (error.message.includes('Invalid ID format')) {
+          return res.status(400).json({ error: 'Invalid customer ID format' });
         }
+        throw error;
+      }
+    }
+    
+    // DELETE customer
+    if (req.method === 'DELETE' && req.url.includes('/api/customers/')) {
+      const customerId = req.url.split('/').pop();
+      
+      try {
+        const customer = await collection.findOne({
+          _id: parseObjectId(customerId)
+        });
         
-        const updatedCustomer = await db.update(customers)
-          .set({ name, email, phone })
-          .where(eq(customers.id, id))
-          .returning();
-          
-        if (updatedCustomer.length === 0) {
+        if (!customer) {
           return res.status(404).json({ error: 'Customer not found' });
         }
         
-        console.log('Updated customer:', updatedCustomer[0]);
-        return res.status(200).json(updatedCustomer[0]);
-      }
-      
-      // DELETE customer
-      if (req.method === 'DELETE') {
-        const deletedCustomer = await db.delete(customers)
-          .where(eq(customers.id, id))
-          .returning();
-          
-        if (deletedCustomer.length === 0) {
-          return res.status(404).json({ error: 'Customer not found' });
-        }
+        await collection.deleteOne({ _id: parseObjectId(customerId) });
         
-        console.log('Deleted customer:', deletedCustomer[0]);
-        return res.status(200).json(deletedCustomer[0]);
+        console.log('Deleted customer:', customer);
+        return res.status(200).json(formatDocument(customer));
+      } catch (error) {
+        if (error.message.includes('Invalid ID format')) {
+          return res.status(400).json({ error: 'Invalid customer ID format' });
+        }
+        throw error;
       }
     }
     

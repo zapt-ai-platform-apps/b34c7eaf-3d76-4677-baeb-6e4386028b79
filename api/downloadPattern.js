@@ -1,14 +1,10 @@
-import { patternGenerations, patterns, measurements, customers } from '../drizzle/schema.js';
-import { getDatabase, handleApiError } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, parseObjectId } from './_apiUtils.js';
 import Sentry from './_sentry.js';
-import { eq } from 'drizzle-orm';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  
-  const db = getDatabase();
   
   console.log('Processing pattern download request');
   
@@ -20,7 +16,7 @@ export default async function handler(req, res) {
     }
     
     // In a real implementation, you would:
-    // 1. Fetch the pattern generation record
+    // 1. Fetch the pattern generation record from MongoDB
     // 2. Generate the PDF file using measurements
     // 3. Return the PDF file
     

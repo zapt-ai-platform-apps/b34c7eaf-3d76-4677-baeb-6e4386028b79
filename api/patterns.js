@@ -1,27 +1,27 @@
-import { patterns } from '../drizzle/schema.js';
-import { getDatabase, handleApiError } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, formatDocuments } from './_apiUtils.js';
 import Sentry from './_sentry.js';
-import { eq } from 'drizzle-orm';
 
 export default async function handler(req, res) {
-  const db = getDatabase();
-
   console.log(`Processing ${req.method} request to /api/patterns`);
 
   try {
+    const { db } = await connectToDatabase();
+    const collection = db.collection('patterns');
+
     // GET patterns
     if (req.method === 'GET') {
-      const patternType = new URL(req.url, 'http://localhost').searchParams.get('type');
+      const url = new URL(req.url, 'http://localhost');
+      const patternType = url.searchParams.get('type');
       
-      let query = db.select().from(patterns);
-      
+      let query = {};
       if (patternType) {
-        query = query.where(eq(patterns.type, patternType));
+        query.type = patternType;
       }
       
-      const allPatterns = await query;
+      const allPatterns = await collection.find(query).toArray();
       console.log(`Retrieved ${allPatterns.length} patterns`);
-      return res.status(200).json(allPatterns);
+      
+      return res.status(200).json(formatDocuments(allPatterns));
     }
     
     // Only GET method is supported for patterns since they're predefined
