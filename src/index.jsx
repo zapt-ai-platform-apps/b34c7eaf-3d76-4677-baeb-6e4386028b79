@@ -1,9 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
+import App from './app/App';
+import { initializeModules } from './modules';
+import './styles/global.css';
 import * as Sentry from '@sentry/browser';
+import ErrorBoundary from './shared/components/ErrorBoundary';
 
+// Initialize Sentry
 Sentry.init({
   dsn: import.meta.env.VITE_PUBLIC_SENTRY_DSN,
   environment: import.meta.env.VITE_PUBLIC_APP_ENV,
@@ -13,6 +16,12 @@ Sentry.init({
       projectId: import.meta.env.VITE_PUBLIC_APP_ID,
     },
   },
+});
+
+// Initialize modules
+initializeModules().catch(error => {
+  console.error('Failed to initialize modules:', error);
+  Sentry.captureException(error);
 });
 
 // Add PWA support
@@ -37,9 +46,12 @@ if (import.meta.env.VITE_PUBLIC_APP_ENV !== 'development') {
   document.head.appendChild(script);
 }
 
+// Render the app
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
