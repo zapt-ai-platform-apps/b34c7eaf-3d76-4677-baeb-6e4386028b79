@@ -1,20 +1,20 @@
+import { initializeLayout } from '@/modules/layout/internal/initialize';
+import { eventBus } from '@/modules/core/events';
+import { events as layoutEvents } from '@/modules/layout/events';
+
 /**
- * Module initialization
+ * Initialize all application modules
  */
-import { eventBus } from './core/events';
-import { events as appEvents } from './app/events';
-
-export { api as appApi } from './app/api';
-
 export async function initializeModules() {
-  // Set up event listeners
-  eventBus.subscribe(appEvents.APP_INITIALIZED, (data) => {
-    console.log('App initialized with state:', data);
+  console.log('Initializing modules...');
+  
+  // Subscribe to app initialization events
+  eventBus.subscribe(layoutEvents.APP_INITIALIZED, () => {
+    console.log('Application initialized successfully');
   });
   
-  eventBus.subscribe(appEvents.APP_ERROR, (data) => {
-    console.error('App error:', data.error);
-  });
+  // Initialize modules
+  await initializeLayout();
   
-  console.log('Modules initialized');
+  console.log('All modules initialized');
 }

@@ -1,4 +1,4 @@
-import { validateCustomer, validateMeasurement } from './validators';
+import { validateCustomer, validateMeasurement } from '@/modules/customers/validators';
 
 /**
  * Customers API module

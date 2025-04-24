@@ -1,6 +1,6 @@
 import React from 'react';
-import { AppProviders } from './AppProviders';
-import AppContent from '../modules/app/ui/App';
+import { AppProviders } from '@/app/AppProviders';
+import AppContent from '@/modules/layout/ui/App';
 
 /**
  * Main App shell that includes providers and the app content

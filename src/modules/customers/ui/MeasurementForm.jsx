@@ -29,7 +29,9 @@ const MeasurementForm = ({ customer, onSubmit, loading }) => {
   
   return (
     <div className="card">
-      <h2 className="text-xl font-bold mb-4">Body Measurements for {customer.name}</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Body Measurements for {customer.name}</h2>
+      </div>
       
       <form onSubmit={handleSubmit(submitHandler)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

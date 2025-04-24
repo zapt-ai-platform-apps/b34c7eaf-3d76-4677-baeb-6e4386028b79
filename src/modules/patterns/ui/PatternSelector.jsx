@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { usePatternsState } from '../internal/state';
+import { usePatternsState } from '@/modules/patterns/internal/state';
 
 const PatternSelector = ({ customer, measurementId, onGenerate }) => {
   const { patterns, loading, loadPatterns, generatePattern, error } = usePatternsState();

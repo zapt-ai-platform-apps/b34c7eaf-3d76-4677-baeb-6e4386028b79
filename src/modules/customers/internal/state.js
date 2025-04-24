@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { api } from '../api';
-import { eventBus } from '../../core/events';
-import { events } from '../events';
+import { api } from '@/modules/customers/api';
+import { eventBus } from '@/modules/core/events';
+import { events } from '@/modules/customers/events';
 
 export const useCustomersState = () => {
   const [customers, setCustomers] = useState([]);
@@ -58,6 +58,12 @@ export const useCustomersState = () => {
       const customerMeasurements = await api.getCustomerMeasurements(customerId);
       setMeasurements(customerMeasurements);
       
+      // Publish customer selected event
+      eventBus.publish(events.CUSTOMER_SELECTED, { 
+        customer,
+        measurements: customerMeasurements
+      });
+      
       return { customer, measurements: customerMeasurements };
     } catch (err) {
       setError(err.message);
@@ -94,6 +100,11 @@ export const useCustomersState = () => {
     }
   }, [selectedCustomer]);
   
+  const clearSelectedCustomer = useCallback(() => {
+    setSelectedCustomer(null);
+    setMeasurements([]);
+  }, []);
+  
   return {
     customers,
     selectedCustomer,
@@ -103,6 +114,7 @@ export const useCustomersState = () => {
     loadCustomers,
     createCustomer,
     selectCustomer,
-    saveMeasurements
+    saveMeasurements,
+    clearSelectedCustomer
   };
 };

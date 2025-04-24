@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createValidator } from '../core/validators';
+import { createValidator } from '@/modules/core/validators';
 
 // Customer validation schema
 export const customerSchema = z.object({

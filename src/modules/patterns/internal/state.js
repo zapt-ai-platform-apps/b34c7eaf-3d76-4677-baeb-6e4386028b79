@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { api } from '../api';
-import { eventBus } from '../../core/events';
-import { events } from '../events';
+import { api } from '@/modules/patterns/api';
+import { eventBus } from '@/modules/core/events';
+import { events } from '@/modules/patterns/events';
 
 export const usePatternsState = () => {
   const [patterns, setPatterns] = useState([]);

@@ -4,5 +4,6 @@
 export const events = {
   CUSTOMER_CREATED: 'customer/created',
   CUSTOMER_UPDATED: 'customer/updated',
+  CUSTOMER_SELECTED: 'customer/selected',
   MEASUREMENTS_SAVED: 'customer/measurements/saved',
 };
