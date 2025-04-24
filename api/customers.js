@@ -1,12 +1,12 @@
-import { connectToDatabase, handleApiError, parseObjectId, formatDocument, formatDocuments } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, parseObjectId, formatDocument, formatDocuments, collection } from './_apiUtils.js';
 import Sentry from './_sentry.js';
 
 export default async function handler(req, res) {
   console.log(`Processing ${req.method} request to /api/customers`);
 
   try {
-    const { db } = await connectToDatabase();
-    const collection = db.collection('customers');
+    await connectToDatabase();
+    const customers = collection('customers');
 
     // GET customers
     if (req.method === 'GET') {
@@ -16,8 +16,8 @@ export default async function handler(req, res) {
       if (customerId && customerId !== 'customers') {
         // GET specific customer
         try {
-          const customer = await collection.findOne({
-            _id: parseObjectId(customerId)
+          const customer = await customers.findOne({
+            _id: customerId
           });
 
           if (!customer) {
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         }
       } else {
         // GET all customers
-        const allCustomers = await collection.find({}).toArray();
+        const allCustomers = await customers.find({});
         console.log(`Retrieved ${allCustomers.length} customers`);
         return res.status(200).json(formatDocuments(allCustomers));
       }
@@ -48,20 +48,20 @@ export default async function handler(req, res) {
       }
       
       // Check if customer with this email already exists
-      const existingCustomer = await collection.findOne({ email });
+      const existingCustomer = await customers.findOne({ email });
       
       if (existingCustomer) {
         return res.status(409).json({ error: 'Customer with this email already exists' });
       }
       
-      const result = await collection.insertOne({
+      const result = await customers.insertOne({
         name,
         email,
         phone,
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       });
       
-      const newCustomer = await collection.findOne({ _id: result.insertedId });
+      const newCustomer = await customers.findOne({ _id: result.insertedId });
       console.log('Created new customer:', newCustomer);
       
       return res.status(201).json(formatDocument(newCustomer));
@@ -77,18 +77,17 @@ export default async function handler(req, res) {
       }
       
       try {
-        const result = await collection.findOneAndUpdate(
-          { _id: parseObjectId(customerId) },
-          { $set: { name, email, phone, updatedAt: new Date() } },
-          { returnDocument: 'after' }
+        const updatedCustomer = await customers.findOneAndUpdate(
+          { _id: customerId },
+          { $set: { name, email, phone, updatedAt: new Date().toISOString() } }
         );
           
-        if (!result) {
+        if (!updatedCustomer) {
           return res.status(404).json({ error: 'Customer not found' });
         }
         
-        console.log('Updated customer:', result);
-        return res.status(200).json(formatDocument(result));
+        console.log('Updated customer:', updatedCustomer);
+        return res.status(200).json(formatDocument(updatedCustomer));
       } catch (error) {
         if (error.message.includes('Invalid ID format')) {
           return res.status(400).json({ error: 'Invalid customer ID format' });
@@ -102,15 +101,15 @@ export default async function handler(req, res) {
       const customerId = req.url.split('/').pop();
       
       try {
-        const customer = await collection.findOne({
-          _id: parseObjectId(customerId)
+        const customer = await customers.findOne({
+          _id: customerId
         });
         
         if (!customer) {
           return res.status(404).json({ error: 'Customer not found' });
         }
         
-        await collection.deleteOne({ _id: parseObjectId(customerId) });
+        await customers.deleteOne({ _id: customerId });
         
         console.log('Deleted customer:', customer);
         return res.status(200).json(formatDocument(customer));

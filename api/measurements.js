@@ -1,12 +1,12 @@
-import { connectToDatabase, handleApiError, parseObjectId, formatDocument, formatDocuments } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, formatDocument, formatDocuments, collection } from './_apiUtils.js';
 import Sentry from './_sentry.js';
 
 export default async function handler(req, res) {
   console.log(`Processing ${req.method} request to /api/measurements`);
 
   try {
-    const { db } = await connectToDatabase();
-    const collection = db.collection('measurements');
+    await connectToDatabase();
+    const measurements = collection('measurements');
 
     // GET all measurements or measurements for a specific customer
     if (req.method === 'GET') {
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
       if (measurementId && measurementId !== 'measurements') {
         // GET specific measurement
         try {
-          const measurement = await collection.findOne({
-            _id: parseObjectId(measurementId)
+          const measurement = await measurements.findOne({
+            _id: measurementId
           });
           
           if (!measurement) {
@@ -38,14 +38,10 @@ export default async function handler(req, res) {
         let query = {};
         
         if (customerIdParam) {
-          try {
-            query.customerId = customerIdParam;
-          } catch (error) {
-            return res.status(400).json({ error: 'Invalid customer ID format' });
-          }
+          query.customerId = customerIdParam;
         }
         
-        const allMeasurements = await collection.find(query).toArray();
+        const allMeasurements = await measurements.find(query);
         console.log(`Retrieved ${allMeasurements.length} measurements`);
         return res.status(200).json(formatDocuments(allMeasurements));
       }
@@ -70,8 +66,8 @@ export default async function handler(req, res) {
         chest: parseFloat(chest),
         waist: parseFloat(waist),
         hip: parseFloat(hip),
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       
       if (neck) measurementData.neck = parseFloat(neck);
@@ -80,8 +76,8 @@ export default async function handler(req, res) {
       if (inseam) measurementData.inseam = parseFloat(inseam);
       if (height) measurementData.height = parseFloat(height);
       
-      const result = await collection.insertOne(measurementData);
-      const newMeasurement = await collection.findOne({ _id: result.insertedId });
+      const result = await measurements.insertOne(measurementData);
+      const newMeasurement = await measurements.findOne({ _id: result.insertedId });
       
       console.log('Created new measurement:', newMeasurement);
       return res.status(201).json(formatDocument(newMeasurement));
@@ -106,7 +102,7 @@ export default async function handler(req, res) {
         chest: parseFloat(chest),
         waist: parseFloat(waist),
         hip: parseFloat(hip),
-        updatedAt: new Date()
+        updatedAt: new Date().toISOString()
       };
       
       if (neck) measurementData.neck = parseFloat(neck);
@@ -116,18 +112,17 @@ export default async function handler(req, res) {
       if (height) measurementData.height = parseFloat(height);
       
       try {
-        const result = await collection.findOneAndUpdate(
-          { _id: parseObjectId(measurementId) },
-          { $set: measurementData },
-          { returnDocument: 'after' }
+        const updatedMeasurement = await measurements.findOneAndUpdate(
+          { _id: measurementId },
+          { $set: measurementData }
         );
           
-        if (!result) {
+        if (!updatedMeasurement) {
           return res.status(404).json({ error: 'Measurement not found' });
         }
         
-        console.log('Updated measurement:', result);
-        return res.status(200).json(formatDocument(result));
+        console.log('Updated measurement:', updatedMeasurement);
+        return res.status(200).json(formatDocument(updatedMeasurement));
       } catch (error) {
         if (error.message.includes('Invalid ID format')) {
           return res.status(400).json({ error: 'Invalid measurement ID format' });
@@ -141,15 +136,15 @@ export default async function handler(req, res) {
       const measurementId = req.url.split('/').pop();
       
       try {
-        const measurement = await collection.findOne({
-          _id: parseObjectId(measurementId)
+        const measurement = await measurements.findOne({
+          _id: measurementId
         });
         
         if (!measurement) {
           return res.status(404).json({ error: 'Measurement not found' });
         }
         
-        await collection.deleteOne({ _id: parseObjectId(measurementId) });
+        await measurements.deleteOne({ _id: measurementId });
         
         console.log('Deleted measurement:', measurement);
         return res.status(200).json(formatDocument(measurement));

@@ -1,12 +1,12 @@
-import { connectToDatabase, handleApiError, formatDocuments } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, formatDocuments, collection } from './_apiUtils.js';
 import Sentry from './_sentry.js';
 
 export default async function handler(req, res) {
   console.log(`Processing ${req.method} request to /api/patterns`);
 
   try {
-    const { db } = await connectToDatabase();
-    const collection = db.collection('patterns');
+    await connectToDatabase();
+    const patterns = collection('patterns');
 
     // GET patterns
     if (req.method === 'GET') {
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         query.type = patternType;
       }
       
-      const allPatterns = await collection.find(query).toArray();
+      const allPatterns = await patterns.find(query);
       console.log(`Retrieved ${allPatterns.length} patterns`);
       
       return res.status(200).json(formatDocuments(allPatterns));

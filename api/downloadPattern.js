@@ -1,4 +1,4 @@
-import { connectToDatabase, handleApiError, parseObjectId } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, collection } from './_apiUtils.js';
 import Sentry from './_sentry.js';
 
 export default async function handler(req, res) {
@@ -15,8 +15,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Generation ID is required' });
     }
     
+    // Connect to embedded database
+    await connectToDatabase();
+    const patternGenerations = collection('patternGenerations');
+    
+    // Try to find the generation record
+    const generation = await patternGenerations.findOne({ _id: generationId });
+    
     // In a real implementation, you would:
-    // 1. Fetch the pattern generation record from MongoDB
+    // 1. Get the pattern generation record
     // 2. Generate the PDF file using measurements
     // 3. Return the PDF file
     
@@ -24,7 +31,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       message: "Pattern download simulation successful",
       note: "In a production app, this would return a generated PDF file",
-      generationId
+      generationId,
+      found: !!generation
     });
   } catch (error) {
     Sentry.captureException(error);

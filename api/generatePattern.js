@@ -1,4 +1,4 @@
-import { connectToDatabase, handleApiError, parseObjectId, formatDocument } from './_apiUtils.js';
+import { connectToDatabase, handleApiError, formatDocument, collection } from './_apiUtils.js';
 import Sentry from './_sentry.js';
 
 export default async function handler(req, res) {
@@ -9,7 +9,12 @@ export default async function handler(req, res) {
   console.log('Processing pattern generation request');
   
   try {
-    const { db } = await connectToDatabase();
+    await connectToDatabase();
+    const patternsCollection = collection('patterns');
+    const customersCollection = collection('customers');
+    const measurementsCollection = collection('measurements');
+    const patternGenerationsCollection = collection('patternGenerations');
+    
     const { patternId, customerId, measurementsId } = req.body;
     
     if (!patternId || !customerId || !measurementsId) {
@@ -19,8 +24,8 @@ export default async function handler(req, res) {
     }
     
     // Verify that pattern exists
-    const pattern = await db.collection('patterns').findOne({
-      _id: parseObjectId(patternId)
+    const pattern = await patternsCollection.findOne({
+      _id: patternId
     });
     
     if (!pattern) {
@@ -28,8 +33,8 @@ export default async function handler(req, res) {
     }
     
     // Verify that customer exists
-    const customer = await db.collection('customers').findOne({
-      _id: parseObjectId(customerId)
+    const customer = await customersCollection.findOne({
+      _id: customerId
     });
     
     if (!customer) {
@@ -37,8 +42,8 @@ export default async function handler(req, res) {
     }
     
     // Verify that measurements exist and belong to the customer
-    const measurement = await db.collection('measurements').findOne({
-      _id: parseObjectId(measurementsId),
+    const measurement = await measurementsCollection.findOne({
+      _id: measurementsId,
       customerId: customerId
     });
     
@@ -52,15 +57,15 @@ export default async function handler(req, res) {
     // In a real app, we would generate the PDF here and store its URL
     const pdfUrl = `/api/downloadPattern?generationId=${Date.now()}`; // Placeholder URL
     
-    const result = await db.collection('patternGenerations').insertOne({
+    const result = await patternGenerationsCollection.insertOne({
       patternId,
       customerId,
       measurementsId,
       pdfUrl,
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     });
     
-    const generation = await db.collection('patternGenerations').findOne({
+    const generation = await patternGenerationsCollection.findOne({
       _id: result.insertedId
     });
     
