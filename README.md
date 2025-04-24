@@ -1,6 +1,14 @@
-# ReactJS Starter - Contract-Based Modular Architecture
+# Sewing Pattern Generator
 
-This is a ReactJS starter template using a contract-based modular architecture.
+This app generates printable PDF 2D clothing patterns for garment construction from body measurements. It includes customer registration, body measurement collection, and pattern generation features.
+
+## Features
+
+- Customer registration and management
+- Body measurement collection and storage
+- Pattern selection and generation
+- Printable PDF pattern downloads
+- Database for storing customer and measurement data
 
 ## Architecture
 
@@ -14,26 +22,33 @@ This project follows a contract-based modular architecture, which provides the b
 4. **Event-Based Communication**: Modules can communicate indirectly via events
 5. **Encapsulated State**: State management is isolated within module boundaries
 
-### Folder Structure
+## Getting Started
 
-```
-src/
-├── modules/           # Feature modules
-│   ├── core/          # Core module infrastructure
-│   ├── app/           # Main app module
-│   │   ├── api.js     # Public contract
-│   │   ├── events.js  # Event definitions
-│   │   ├── validators.js # Contract validation
-│   │   ├── internal/  # Private implementation
-│   │   └── ui/        # UI components
-│   └── index.js       # Module exports and initialization
-├── app/               # Application shell
-│   ├── App.jsx        # Main App component wrapper
-│   └── AppProviders.jsx # Providers composition
-├── styles/            # Global styles
-├── shared/            # Cross-cutting utilities and components
-└── index.jsx          # Entry point
-```
+### Prerequisites
+
+- Node.js
+- CockroachDB database
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies with `npm install`
+3. Set up environment variables in a `.env` file
+4. Run development server with `npm run dev`
+
+## Usage
+
+1. Register a customer with their basic information
+2. Enter body measurements for the customer
+3. Select a pattern type to generate
+4. Download the printable PDF pattern
+
+## Database Schema
+
+- **customers**: Stores customer information
+- **measurements**: Stores body measurements for customers
+- **patterns**: Catalog of available pattern types
+- **pattern_generations**: Records of generated patterns
 
 ## Available Scripts
 

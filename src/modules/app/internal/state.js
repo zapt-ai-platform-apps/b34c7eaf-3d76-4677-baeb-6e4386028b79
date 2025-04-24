@@ -8,13 +8,17 @@ import { validateAppState } from '../validators';
 
 export const useAppState = () => {
   const [appState, setAppState] = useState({
-    initialized: false
+    initialized: false,
+    currentPage: 'customers'
   });
 
   const initializeApp = useCallback(() => {
     try {
       // Initialize app logic would go here
-      const newState = { initialized: true };
+      const newState = { 
+        initialized: true,
+        currentPage: 'customers'
+      };
       
       // Validate state before setting
       const validatedState = validateAppState(newState, {
@@ -39,9 +43,17 @@ export const useAppState = () => {
       throw error;
     }
   }, []);
+  
+  const setCurrentPage = useCallback((page) => {
+    setAppState(prev => ({
+      ...prev,
+      currentPage: page
+    }));
+  }, []);
 
   return {
     appState,
-    initializeApp
+    initializeApp,
+    setCurrentPage
   };
 };

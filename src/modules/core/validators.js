@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/browser';
+import { z } from 'zod';
 
 /**
  * Creates a validator function for the given schema
- * @param {Object} schema - Schema to validate against
+ * @param {z.ZodType} schema - Zod schema to validate against
  * @param {string} contextName - Name of what's being validated
  * @returns {function} - Validator function
  */
@@ -17,16 +18,17 @@ export const createValidator = (schema, contextName) => {
     } = options;
     
     try {
-      // Simple validation for now since we don't have zod
-      if (!data) {
+      // Use zod schema for validation
+      if (schema) {
+        return schema.parse(data);
+      }
+      
+      // If no schema provided, ensure data is not null/undefined
+      if (data === null || data === undefined) {
         throw new Error(`${contextName} cannot be null or undefined`);
       }
       
-      // In a real app, we would use zod or another validation library
-      // This is just a simple placeholder
-      const validatedData = schema ? { ...data } : data;
-      
-      return validatedData;
+      return data;
     } catch (error) {
       // Create context for error reporting
       const validationContext = {
@@ -38,14 +40,32 @@ export const createValidator = (schema, contextName) => {
         timestamp: new Date().toISOString()
       };
       
-      // Log to console
-      console.error(`Validation failed: ${error.message}`, validationContext);
+      // Safe version of data for logging
+      const safeData = typeof data === 'object' ? 
+        JSON.stringify(data, (key, value) => 
+          ['password', 'token', 'secret'].includes(key) ? '[REDACTED]' : value
+        ) : String(data);
       
-      // Send to Sentry
+      // Format validation errors for zod
+      const formattedErrors = error.errors?.map(err => 
+        `${err.path.join('.')}: ${err.message}`
+      ).join('\n') || error.message;
+      
+      // Create descriptive error message with full context
+      const errorMessage = `Validation failed in ${validationContext.action} (${validationContext.flow})\n` +
+                          `Context: ${contextName} (${direction})\n` +
+                          `Location: ${location}\n` +
+                          `Errors:\n${formattedErrors}`;
+      
+      // Log to console with detailed info
+      console.error(errorMessage, '\nReceived:', safeData);
+      
+      // Send to Sentry with full context
       Sentry.captureException(error, {
         extra: {
           ...validationContext,
-          receivedData: JSON.stringify(data)
+          receivedData: safeData,
+          validationErrors: formattedErrors
         },
         tags: {
           validationType: contextName,
